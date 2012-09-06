@@ -1,0 +1,28 @@
+msc {
+    hscale="1.5";
+
+    svc1 [label="Service 1"],
+    svc2 [label="Service 2"],
+    boson [label="Boson"];
+
+    --- [label="Standard Exchange",textcolor="red"];
+    svc1 => boson [label="Requests"];
+    boson => svc1 [label="Reservations"];
+
+    --- [label="Update Required Exchange",textcolor="red"];
+    svc1 => boson [label="Requests"];
+    boson >> svc1 [label="Update Required (ID=1)"];
+    svc1 => boson [label="Requests, Usage Update (ID=1)"];
+    boson => svc1 [label="Reservations"];
+
+    --- [label="Update Required Exchange, 2 Services",textcolor="red"];
+    svc1 => boson [label="Requests"];
+    boson >> svc1 [label="Update Required (ID=2)"];
+    svc2 => boson [label="Requests"];
+    boson >> svc2 [label="Update Required (ID=2)"];
+    svc2 => boson [label="Requests, Usage Update (ID=2)"];
+    boson => svc2 [label="Reservations"];
+    svc1 => boson [label="Requests, Usage Update (ID=2)"];
+    boson note boson [label="Duplicate usage update is ignored",textcolor="white",textbgcolor="blue"];
+    boson => svc1 [label="Reservations"];
+}
