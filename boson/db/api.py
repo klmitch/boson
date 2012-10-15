@@ -15,8 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import unittest2
 
+def get_session():
+    """Temporary placeholder: get a session for the underlying database."""
 
-class TestCase(unittest2.TestCase):
     pass

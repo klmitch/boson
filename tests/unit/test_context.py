@@ -15,8 +15,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import unittest2
+import mock
+
+from boson import context
+
+import tests
 
 
-class TestCase(unittest2.TestCase):
-    pass
+class GenerateRequestIdTestCase(tests.TestCase):
+    @mock.patch('uuid.uuid4',
+                return_value='9bb4060a-3a1d-49e0-8c9b-b6f16b430cac')
+    def test_generate_request_id(self, _mock_uuid4):
+        result = context.generate_request_id()
+
+        self.assertEqual(result, 'req-9bb4060a-3a1d-49e0-8c9b-b6f16b430cac')
