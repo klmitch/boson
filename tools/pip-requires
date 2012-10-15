@@ -1,0 +1,9 @@
+SQLAlchemy>=0.7.8
+eventlet>=0.9.17
+routes==1.12.3
+WebOb==1.0.8
+greenlet>=0.3.1
+PasteDeploy==1.5.0
+sqlalchemy-migrate>=0.7.2
+iso8601>=0.1.4
+setuptools_git>=0.4

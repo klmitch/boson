@@ -1,0 +1,9 @@
+coverage
+distribute>=0.6.24
+mock
+nose
+nosehtmloutput
+openstack.nose_plugin>=0.7
+pep8
+sphinx>=1.1.2
+unittest2
