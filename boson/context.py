@@ -95,7 +95,7 @@ class Context(object):
         new_ctx = copy.copy(self)
         new_ctx.is_admin = True
 
-        if 'admin' not in new_ctx.roles:
+        if 'admin' not in [r.lower() for r in new_ctx.roles]:
             new_ctx.roles.append('admin')
 
         return new_ctx
