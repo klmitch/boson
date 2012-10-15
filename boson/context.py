@@ -19,6 +19,7 @@ import copy
 import uuid
 
 from boson.db import api as db_api
+from boson.openstack.common.gettextutils import _
 from boson.openstack.common import log as logging
 
 
