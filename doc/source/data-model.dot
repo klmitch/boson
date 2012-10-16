@@ -1,0 +1,35 @@
+digraph "data-model" {
+	rankdir="BT";
+	node [shape="box3d"];
+
+	quota [label="Quota\n(quota.py)"];
+	request [label="Request\n(request.py)"];
+	reservation [label="Reservation\n(reservation.py)"];
+	resource [label="Resource\n(resource.py)"];
+	spc_resource [label="SpecificResource\n(resource.py)"];
+	service [label="Service\n(service.py)"];
+	svc_user [label="ServiceUser\n(service.py)"];
+	usage [label="Usage\n(usage.py)"];
+
+	auth_data [label="AuthN/AuthZ Data",shape="oval",color="purple"];
+	param_data [label="Parameter Data",shape="oval",color="purple"];
+
+	quota -> resource;
+	quota -> auth_data [label="(Partial)",style="dotted",color="purple"];
+
+	request -> svc_user;
+	request -> spc_resource;
+
+	reservation -> svc_user;
+	reservation -> spc_resource;
+
+	resource -> service;
+	spc_resource -> resource;
+	spc_resource -> param_data [style="dotted",color="purple"];
+
+	svc_user -> service;
+	svc_user -> auth_data [style="dotted",color="purple"];
+
+	usage -> spc_resource;
+	usage -> svc_user;
+}
