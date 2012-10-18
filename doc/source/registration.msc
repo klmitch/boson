@@ -1,0 +1,22 @@
+msc {
+    hscale="1.5";
+
+    svc1 [label="Service 1"],
+    svc2 [label="Service 2"],
+    boson [label="Boson"];
+
+    --- [label="Initial Registration",textcolor="red"];
+    svc1 => boson [label="Registration Data"];
+    boson note boson [label="Create service, resource, and default quota records",textcolor="white",textbgcolor="blue"];
+    boson => svc1 [label="OK"];
+
+    --- [label="Duplicate Registration",textcolor="red"];
+    svc2 => boson [label="Registration Data"];
+    boson note boson [label="Duplicate registration data is ignored",textcolor="white",textbgcolor="blue"];
+    boson => svc2 [label="OK"];
+
+    --- [label="Updated Registration",textcolor="red"];
+    svc1 => boson [label="Registration Data"];
+    boson note boson [label="Update service and resources, create new resources and set default quota records",textcolor="white",textbgcolor="blue"];
+    boson => svc1 [label="OK"];
+}
