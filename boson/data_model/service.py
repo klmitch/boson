@@ -18,25 +18,37 @@
 from boson.openstack.common.gettextutils import _
 
 
-class FieldSet(object):
+class Category(object):
     """
-    Represent a set of fields for a quota and its matching usage.
+    Represent a category of quotas; that is, for a given resource,
+    there may be quota limits imposed on a per-user basis and a
+    per-tenant basis.
     """
 
-    def __init__(self, quota_set, usage_set):
+    def __init__(self, service, name, usage_fields, quota_fieldsets):
         """
-        Initialize a FieldSet.
+        Initialize a Category.
 
-        :param quota_set: A list of the field names of authentication
-                          and authorization data that will be used for
-                          looking up an applicable quota.
-        :param usage_set: A list of the field names of authentication
-                          and authorization data that will be used for
-                          looking up an applicable usage.
+        :param service: The Service object.
+        :param name: A descriptive name of the category.
+        :param usage_fields: A list of the field names of
+                             authentication and authorization data
+                             that will be used for looking up an
+                             applicable usage.
+        :param quota_fieldsets: A list containing, in order from most
+                                specific to least specific, lists of
+                                field names of authentication and
+                                authorization data that will be used
+                                for looking up an applicable quota.
         """
 
-        self.quota_set = set(quota_set)
-        self.usage_set = set(usage_set)
+        self.service = service
+        self.name = name
+        self.usage_fields = set(fld for fld in usage_fields
+                                if fld in service.auth_fields)
+        self.quota_fieldsets = [set(fld for fld in fieldset
+                                    if fld in service.auth_fields)
+                                for fieldset in quota_fieldsets]
 
 
 class Service(object):
@@ -44,7 +56,7 @@ class Service(object):
     Represent a single service.
     """
 
-    def __init__(self, name, auth_fields, field_sets):
+    def __init__(self, name, auth_fields):
         """
         Initialize a Service.
 
@@ -53,22 +65,18 @@ class Service(object):
         :param auth_fields: A list of the field names of
                             authentication and authorization data that
                             will be provided by the service.
-        :param field_sets: A list of two-tuples, where the two
-                           elements are lists of field names.  The
-                           first element corresponds to the fields
-                           available for selecting quotas, and the
-                           second element corresponds to the fields
-                           used for selecting the matching usage.  The
-                           list is ordered from least specific to most
-                           specific, and should include an entry for
-                           the default quota (first element of the
-                           tuple is an empty list) matching it to a
-                           corresponding usage field set.
         """
 
         self.name = name
         self.auth_fields = set(auth_fields)
-        self.field_sets = [FieldSet(q, u) for q, u in field_sets]
+        self.categories = {}
+
+    def add_category(self, category):
+        """
+        Add a category to the service.
+        """
+
+        self.categories[category.name] = category
 
 
 class ServiceUser(object):

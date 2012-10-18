@@ -22,11 +22,12 @@ class Quota(object):
     a simple limit.
     """
 
-    def __init__(self, resource, auth_data=None, limit=None):
+    def __init__(self, resource, category, auth_data=None, limit=None):
         """
         Initialize a Quota.
 
         :param resource: The Resource the limit is for.
+        :param category: The category of the Quota.
         :param auth_data: The authentication and authorization data
                           relevant to service users.  The most
                           specific matching quota is applied to a
@@ -36,6 +37,7 @@ class Quota(object):
         """
 
         self.resource = resource
+        self.category = category
         self.limit = limit
 
         # Filter the authentication/authorization data
