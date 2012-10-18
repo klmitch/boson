@@ -18,7 +18,7 @@
 import re
 
 
-serialize_re = re.compile(r'[/%="]')
+serialize_re = re.compile(r"""[/%="']""")
 deserialize_re = re.compile(r'%([0-9A-Fa-f]{2})')
 
 
