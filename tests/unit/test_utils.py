@@ -15,6 +15,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import uuid
+
+import mock
+
 from boson import utils
 
 import tests
@@ -93,3 +97,12 @@ class AuthDeserializeTestCase(tests.TestCase):
         )
 
         self.assertEqual(utils.auth_deserialize(test_data), exemplar)
+
+
+class GenerateUuidTestCase(tests.TestCase):
+    @mock.patch.object(uuid, 'uuid4',
+                       return_value=uuid.UUID(
+                       '9bb4060a-3a1d-49e0-8c9b-b6f16b430cac'))
+    def test_generate_uuid(self, _mock_uuid4):
+        self.assertEqual(utils.generate_uuid(),
+                         '9bb4060a-3a1d-49e0-8c9b-b6f16b430cac')

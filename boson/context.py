@@ -16,11 +16,11 @@
 #    under the License.
 
 import copy
-import uuid
 
 from boson.db import api as db_api
 from boson.openstack.common.gettextutils import _
 from boson.openstack.common import log as logging
+from boson import utils
 
 
 LOG = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ LOG = logging.getLogger(__name__)
 def generate_request_id():
     """Generate a unique request ID."""
 
-    return 'req-' + str(uuid.uuid4())
+    return 'req-' + utils.generate_uuid()
 
 
 class Context(object):

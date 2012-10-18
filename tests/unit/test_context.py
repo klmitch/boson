@@ -23,7 +23,7 @@ import tests
 
 
 class GenerateRequestIdTestCase(tests.TestCase):
-    @mock.patch('uuid.uuid4',
+    @mock.patch('boson.utils.generate_uuid',
                 return_value='9bb4060a-3a1d-49e0-8c9b-b6f16b430cac')
     def test_generate_request_id(self, _mock_uuid4):
         result = context.generate_request_id()

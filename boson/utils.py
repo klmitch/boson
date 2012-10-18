@@ -16,6 +16,7 @@
 #    under the License.
 
 import re
+import uuid
 
 
 serialize_re = re.compile(r"""[/%="']""")
@@ -87,3 +88,11 @@ def auth_deserialize(auth_data):
         result[key] = _deserialize(value)
 
     return result
+
+
+def generate_uuid():
+    """
+    Generate and return a string UUID.
+    """
+
+    return str(uuid.uuid4())
