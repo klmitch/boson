@@ -23,12 +23,13 @@ class Usage(object):
     reservations).
     """
 
-    def __init__(self, spc_resource, svc_user, usage=0, reserved=0):
+    def __init__(self, spc_resource, auth_data, usage=0, reserved=0):
         """
         Initialize a Usage.
 
         :param spc_resource: The SpecificResource the usage is for.
-        :param svc_user: The ServiceUser the usage is for.
+        :param auth_data: The authentication and authorization data
+                          relevant to service users.
         :param usage: The current amount of the resource which is in
                       use by the user.
         :param reserved: The current amount of the resource which is
@@ -36,6 +37,9 @@ class Usage(object):
         """
 
         self.spc_resource = spc_resource
-        self.svc_user = svc_user
         self.usage = usage
         self.reserved = reserved
+
+        auth_fields = spc_resource.resource.service.auth_fields
+        self.auth_data = dict((k, v) for k, v in auth_data.items()
+                              if k in auth_fields)

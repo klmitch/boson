@@ -28,8 +28,8 @@ digraph "data-model" {
 	spc_resource -> param_data [style="dotted",color="purple"];
 
 	svc_user -> service;
-	svc_user -> auth_data [style="dotted",color="purple"];
+	svc_user -> auth_data [label="(Complete)",style="dotted",color="purple"];
 
 	usage -> spc_resource;
-	usage -> svc_user;
+	usage -> auth_data [label="(Partial)",style="dotted",color="purple"];
 }

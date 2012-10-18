@@ -18,12 +18,33 @@
 from boson.openstack.common.gettextutils import _
 
 
+class FieldSet(object):
+    """
+    Represent a set of fields for a quota and its matching usage.
+    """
+
+    def __init__(self, quota_set, usage_set):
+        """
+        Initialize a FieldSet.
+
+        :param quota_set: A list of the field names of authentication
+                          and authorization data that will be used for
+                          looking up an applicable quota.
+        :param usage_set: A list of the field names of authentication
+                          and authorization data that will be used for
+                          looking up an applicable usage.
+        """
+
+        self.quota_set = set(quota_set)
+        self.usage_set = set(usage_set)
+
+
 class Service(object):
     """
     Represent a single service.
     """
 
-    def __init__(self, name, auth_fields):
+    def __init__(self, name, auth_fields, field_sets):
         """
         Initialize a Service.
 
@@ -32,10 +53,22 @@ class Service(object):
         :param auth_fields: A list of the field names of
                             authentication and authorization data that
                             will be provided by the service.
+        :param field_sets: A list of two-tuples, where the two
+                           elements are lists of field names.  The
+                           first element corresponds to the fields
+                           available for selecting quotas, and the
+                           second element corresponds to the fields
+                           used for selecting the matching usage.  The
+                           list is ordered from least specific to most
+                           specific, and should include an entry for
+                           the default quota (first element of the
+                           tuple is an empty list) matching it to a
+                           corresponding usage field set.
         """
 
         self.name = name
         self.auth_fields = set(auth_fields)
+        self.field_sets = [FieldSet(q, u) for q, u in field_sets]
 
 
 class ServiceUser(object):
