@@ -16,7 +16,7 @@
 #    under the License.
 
 from sqlalchemy import Column, Integer, BigInteger, String
-from sqlalchemy import ForeignKey, DateTime, Text
+from sqlalchemy import ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.exc.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
 
@@ -71,6 +71,7 @@ class Resource(BASE, ModelBase):
                          nullable=False)
     name = Column(String(64))
     parameters = Column(Text)
+    absolute = Column(Boolean)
 
     service = relationship(Service, backref=backref('resources'))
     category = relationship(Category, backref=backref('resources'))
