@@ -45,3 +45,5 @@ class Usage(object):
         auth_fields = spc_resource.resource.service.auth_fields
         self.auth_data = dict((k, v) for k, v in auth_data.items()
                               if k in auth_fields)
+
+        self.refresh_id = None

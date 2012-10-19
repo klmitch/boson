@@ -89,6 +89,7 @@ class Usage(BASE, ModelBase):
     used = Column(BigInteger)
     reserved = Column(BigInteger)
     until_refresh = Column(Integer)
+    refresh_id = Column(String(36))
 
     resource = relationship(Resource, backref=backref('usages'))
 
