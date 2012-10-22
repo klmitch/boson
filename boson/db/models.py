@@ -19,6 +19,8 @@ import sys
 
 import metatools
 
+from boson.openstack.common.gettextutils import _
+
 
 def _get_klass(klass):
     """
@@ -194,17 +196,34 @@ class BaseModel(object):
         self._cache = {}
         self._hints = hints
 
-    def __getattr__(self, name):
+    def __getitem__(self, name):
         """
-        Retrieve the value of a given field.
+        Retrieve the value of a given field (item syntax).
         """
 
+        # For simple values, return the value
         if name in self._fields:
             return self._values[name]
+
+        # For reference values, return the referenced object
         elif name in self._refs:
             if name not in self._cache:
                 self._cache[name] = self._refs[name](self)
             return self._cache[name]
+
+        # OK, don't know that name
+        raise KeyError(name)
+
+    def __getattr__(self, name):
+        """
+        Retrieve the value of a given field (attribute syntax).
+        """
+
+        try:
+            return self.__getitem__(name)
+        except KeyError:
+            # OK, don't know that attribute
+            raise AttributeError(_('cannot get %r attribute') % name)
 
 
 class Service(BaseModel):
