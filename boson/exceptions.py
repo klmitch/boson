@@ -44,3 +44,7 @@ class BosonException(Exception):
                             "message %(msg)r, kwargs %(kwargs)r") % locals())
 
         super(BosonException, self).__init__(msg)
+
+
+class AmbiguousFieldUpdate(BosonException):
+    message = _("Ambiguous update of field %(field)r")

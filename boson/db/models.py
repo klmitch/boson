@@ -225,6 +225,136 @@ class BaseModel(object):
             # OK, don't know that attribute
             raise AttributeError(_('cannot get %r attribute') % name)
 
+    def __setitem__(self, name, value):
+        """
+        Set the value of a given field.
+        """
+
+        # For simple values, update the value in the base object and
+        # call the dbapi to save it
+        if name in self._fields:
+            setattr(self._base_obj, name, value)
+            self._dbapi.save(self._base_obj)
+            self._values[name] = value
+
+            # If there's a corresponding reference, invalidate the
+            # corresponding cache entry
+            if name[-3:] == '_id':
+                self._cache.pop(name[:-3], None)
+
+            return
+
+        # For reference values, update the corresponding field in the
+        # base object and call the dbapi to save it
+        elif name in self._refs:
+            ref = self._refs[name]
+
+            # If it's a simple reference, update it
+            if isinstance(ref, Ref):
+                setattr(self._base_obj, ref.base_field, value.id)
+                self._dbapi.save(self._base_obj)
+                self._values[ref.base_field] = value.id
+                self._cache[name] = value
+                return
+
+        # Can't set that field
+        raise KeyError(name)
+
+    def __setattr__(self, name, value):
+        """
+        Set the value of a given field.
+        """
+
+        # Delegate internal attributes to regular setting
+        if name[0] == '_':
+            return super(BaseModel, self).__setattr__(name, value)
+
+        try:
+            return self.__setitem__(name, value)
+        except KeyError:
+            # Don't know that attribute
+            raise AttributeError(_('cannot set %r attribute') % name)
+
+    def __delitem__(self, name):
+        """
+        Prohibit deletion of fields.
+        """
+
+        raise KeyError(name)
+
+    def __delattr__(self, name):
+        """
+        Prohibit deletion of fields.
+        """
+
+        raise AttributeError(_('cannot delete %r attribute') % name)
+
+    def update(self, **kwargs):
+        """
+        Update multiple fields simultaneously.  Specify field values
+        as keyword arguments.  If a field is unknown or unsettable
+        (e.g., a reference field returning a list), a KeyError will be
+        raised, and no other changes will be applied.
+        """
+
+        values = {}
+        cache = {}
+        invalidate = set()
+
+        for name, value in kwargs.items():
+            # For simple values, save an update for the value
+            if name in self._fields:
+                # Make sure we didn't have a duplicate
+                if name in values:
+                    raise AmbiguousFieldUpdate(field=name)
+
+                # Save the value we're going to set
+                values[name] = value
+
+                # Mark the cache for invalidation
+                if name[-3:] == '_id':
+                    invalidate.add(name[:-3])
+
+                continue
+
+            # For reference values, sanity-check the value and save an
+            # update for it
+            elif name in self._refs:
+                ref = self._refs[name]
+
+                # If it's a simple reference, we can handle it
+                if isinstance(ref, Ref):
+                    # Make sure we didn't have a duplicate
+                    if ref.base_field in values:
+                        raise AmbiguousFieldUpdate(field=ref.base_field)
+
+                    # Save the value we're going to set
+                    values[name] = value.id  # sanity-checks the value, too
+
+                    # Mark the cache for update
+                    cache[name] = value
+
+                    continue
+
+            # Couldn't handle that field; raise a KeyError
+            raise KeyError(name)
+
+        # We have now validated the whole change request; install the
+        # changes to the base object...
+        for key, value in values.items():
+            setattr(self._base_obj, key, value)
+
+        # Save it...
+        self._dbapi.save(self._base_obj)
+
+        # Install the changes to the values and the cache
+        self._values.update(values)
+        self._cache.update(cache)
+
+        # Handle cache invalidations
+        for name in invalidate:
+            self._cache.pop(name, None)
+
 
 class Service(BaseModel):
     """
