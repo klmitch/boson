@@ -167,7 +167,7 @@ class BaseModel(object):
 
     __metaclass__ = BaseModelMeta
 
-    _fields = set(['created_at', 'updated_at'])
+    _fields = set(['created_at', 'updated_at', 'id'])
     _refs = []
 
     def __init__(self, dbapi, base_obj, hints=None):
@@ -233,7 +233,7 @@ class Service(BaseModel):
         resources.
     """
 
-    _fields = set(['id', 'name', 'auth_fields'])
+    _fields = set(['name', 'auth_fields'])
     _refs = [
         ListRef('categories', 'Category'),
         ListRef('resources', 'Resource')
@@ -278,7 +278,7 @@ class Category(BaseModel):
         resources.
     """
 
-    _fields = set(['id', 'service_id', 'name', 'usage_fset', 'quota_fsets'])
+    _fields = set(['service_id', 'name', 'usage_fset', 'quota_fsets'])
     _refs = [
         Ref('service', 'Service'),
         ListRef('resources', 'Resource'),
@@ -338,7 +338,7 @@ class Resource(BaseModel):
         reserved items of this resource.
     """
 
-    _fields = set(['id', 'service_id', 'category_id', 'name', 'parameters',
+    _fields = set(['service_id', 'category_id', 'name', 'parameters',
                    'absolute'])
     _refs = [
         Ref('service', 'Service'),
@@ -404,7 +404,7 @@ class Usage(BaseModel):
         failed resource deallocations.)
     """
 
-    _fields = set(['id', 'resource_id', 'parameter_data', 'auth_data', 'used',
+    _fields = set(['resource_id', 'parameter_data', 'auth_data', 'used',
                    'reserved', 'until_refresh', 'refresh_id'])
     _refs = [
         Ref('resource', 'Resource'),
@@ -439,7 +439,7 @@ class Quota(BaseModel):
         The quota limit on allocations of the associated resource.
     """
 
-    _fields = set(['id', 'resource_id', 'auth_data', 'limit'])
+    _fields = set(['resource_id', 'auth_data', 'limit'])
     _refs = [Ref('resource', 'Resource')]
 
 
@@ -465,7 +465,7 @@ class Reservation(BaseModel):
         resource reservations.
     """
 
-    _fields = set(['id', 'expire'])
+    _fields = set(['expire'])
     _refs = [ListRef('reserved_items', 'ReservedItem')]
 
 
@@ -507,7 +507,7 @@ class ReservedItem(BaseModel):
         resource deallocation.
     """
 
-    _fields = set(['id', 'reservation_id', 'resource_id', 'usage_id', 'delta'])
+    _fields = set(['reservation_id', 'resource_id', 'usage_id', 'delta'])
     _refs = [
         Ref('reservation', 'Reservation'),
         Ref('resource', 'Resource'),

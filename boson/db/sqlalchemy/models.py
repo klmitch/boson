@@ -32,6 +32,7 @@ class ModelBase(object):
     __table_initialized__ = False
     created_at = Column(DateTime, default=timeutils.utcnow)
     updated_at = Column(DateTime, onupdate=timeutils.utcnow)
+    id = Column(String(36), primary_key=True, default=utils.generate_uuid)
 
 
 class Service(BASE, ModelBase):
@@ -39,7 +40,6 @@ class Service(BASE, ModelBase):
 
     __tablename__ = 'services'
 
-    id = Column(String(36), primary_key=True, default=utils.generate_uuid)
     name = Column(String(64))
     auth_fields = Column(Text)
 
@@ -49,7 +49,6 @@ class Category(BASE, ModelBase):
 
     __tablename__ = 'categories'
 
-    id = Column(String(36), primary_key=True, default=utils.generate_uuid)
     service_id = Column(String(36), ForeignKey('services.id'),
                         nullable=False)
     name = Column(String(64))
@@ -64,7 +63,6 @@ class Resource(BASE, ModelBase):
 
     __tablename__ = 'resources'
 
-    id = Column(String(36), primary_key=True, default=utils.generate_uuid)
     service_id = Column(String(36), ForeignKey('services.id'),
                         nullable=False)
     category_id = Column(String(36), ForeignKey('categories.id'),
@@ -82,7 +80,6 @@ class Usage(BASE, ModelBase):
 
     __tablename__ = 'usages'
 
-    id = Column(String(36), primary_key=True, default=utils.generate_uuid)
     resource_id = Column(String(36), ForeignKey('resources.id'),
                          nullable=False)
     parameter_data = Column(Text)
@@ -100,7 +97,6 @@ class Quota(BASE, ModelBase):
 
     __tablename__ = 'quotas'
 
-    id = Column(String(36), primary_key=True, default=utils.generate_uuid)
     resource_id = Column(String(36), ForeignKey('resources.id'),
                          nullable=False)
     auth_data = Column(Text)
@@ -114,7 +110,6 @@ class Reservation(BASE, ModelBase):
 
     __tablename__ = 'reservations'
 
-    id = Column(String(36), primary_key=True, default=utils.generate_uuid)
     expire = Column(DateTime, nullable=False)
 
 
@@ -123,7 +118,6 @@ class ReservedItem(BASE, ModelBase):
 
     __tablename__ = 'reserved_items'
 
-    id = Column(String(36), primary_key=True, default=utils.generate_uuid)
     reservation_id = Column(String(36), ForeignKey('reservations.id'),
                             nullable=False)
     resource_id = Column(String(36), ForeignKey('resources.id'),
