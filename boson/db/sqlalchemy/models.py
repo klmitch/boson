@@ -15,10 +15,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from sqlalchemy import Column, Integer, BigInteger, String
-from sqlalchemy import ForeignKey, DateTime, Text, Boolean
+import cPickle
+
+from sqlalchemy import BigInteger, Boolean, Column, DateTime
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.exc.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import backref, relationship
+from sqlalchemy.types import TypeDecorator
 
 from boson.openstack.common import timeutils
 from boson import utils
@@ -27,7 +30,63 @@ from boson import utils
 BASE = declarative_base()
 
 
+class DictSerialized(TypeDecorator):
+    """
+    Special SQLAlchemy type to support serializing dictionaries into
+    and out of the special serialization format implemented by
+    boson.utils.dict_{,de}serialize().  This serialization format is a
+    repeatable format (dictionary keys are ordered), which makes it
+    possible to search for table rows matching a desired dictionary.
+    """
+
+    impl = Text
+
+    def process_bind_param(self, value, dialect):
+        """Marshal the value into its serialized format."""
+
+        if value is not None:
+            value = utils.dict_serialize(value)
+
+        return value
+
+    def process_result_value(self, value, dialect):
+        """Marshal the value out of its serialized format."""
+
+        if value is not None:
+            value = utils.dict_deserializer(value)
+
+        return value
+
+
+class PickledString(TypeDecorator):
+    """
+    Special SQLAlchemy type to support serializing Python objects into
+    and out of the database, using the cPickle module.  This enables
+    field sets to be stored in the database as sets, etc.
+    """
+
+    impl = Text
+
+    def process_bind_param(self, value, dialect):
+        """Marshal the value into its serialized format."""
+
+        if value is not None:
+            value = cPickle.dumps(value)
+
+        return value
+
+    def process_result_value(self, value, dialect):
+        """Marshal the value out of its serialized format."""
+
+        if value is not None:
+            value = cPickle.loads(value)
+
+        return value
+
+
 class ModelBase(object):
+    """Base class for model classes."""
+
     __table_args__ = {'mysql_engine': 'InnoDB'}
     __table_initialized__ = False
     created_at = Column(DateTime, default=timeutils.utcnow)
@@ -41,7 +100,7 @@ class Service(BASE, ModelBase):
     __tablename__ = 'services'
 
     name = Column(String(64))
-    auth_fields = Column(Text)
+    auth_fields = Column(PickledString)
 
 
 class Category(BASE, ModelBase):
@@ -52,8 +111,8 @@ class Category(BASE, ModelBase):
     service_id = Column(String(36), ForeignKey('services.id'),
                         nullable=False)
     name = Column(String(64))
-    usage_fset = Column(Text)
-    quota_fsets = Column(Text)
+    usage_fset = Column(PickledString)
+    quota_fsets = Column(PickledString)
 
     service = relationship(Service, backref=backref('categories'))
 
@@ -68,7 +127,7 @@ class Resource(BASE, ModelBase):
     category_id = Column(String(36), ForeignKey('categories.id'),
                          nullable=False)
     name = Column(String(64))
-    parameters = Column(Text)
+    parameters = Column(PickledString)
     absolute = Column(Boolean)
 
     service = relationship(Service, backref=backref('resources'))
@@ -82,8 +141,8 @@ class Usage(BASE, ModelBase):
 
     resource_id = Column(String(36), ForeignKey('resources.id'),
                          nullable=False)
-    parameter_data = Column(Text)
-    auth_data = Column(Text)
+    parameter_data = Column(DictSerialized)
+    auth_data = Column(DictSerialized)
     used = Column(BigInteger)
     reserved = Column(BigInteger)
     until_refresh = Column(Integer)
@@ -99,7 +158,7 @@ class Quota(BASE, ModelBase):
 
     resource_id = Column(String(36), ForeignKey('resources.id'),
                          nullable=False)
-    auth_data = Column(Text)
+    auth_data = Column(DictSerialized)
     limit = Column(BigInteger)
 
     resource = relationship(Resource, backref=backref('quotas'))
