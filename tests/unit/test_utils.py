@@ -69,8 +69,8 @@ class DeserializeTestCase(tests.TestCase):
         self.assertRaises(ValueError, utils._deserialize, '3.14')
 
 
-class AuthSerializeTestCase(tests.TestCase):
-    def test_auth_serialize(self):
+class DictSerializeTestCase(tests.TestCase):
+    def test_dict_serialize(self):
         test_data = dict(
             alpha="""alpha/%="'""",
             bravo=54321,
@@ -81,11 +81,11 @@ class AuthSerializeTestCase(tests.TestCase):
         exemplar = ("""alpha="alpha%2F%25%3D%22%27"/bravo=54321/"""
                     """charlie=null/delta=true/echo=false""")
 
-        self.assertEqual(utils.auth_serialize(test_data), exemplar)
+        self.assertEqual(utils.dict_serialize(test_data), exemplar)
 
 
-class AuthDeserializeTestCase(tests.TestCase):
-    def test_auth_deserialize(self):
+class DictDeserializeTestCase(tests.TestCase):
+    def test_dict_deserialize(self):
         test_data = ("""alpha="alpha%2F%25%3D%22%27"/bravo=54321/"""
                      """charlie=null/delta=true/echo=false""")
         exemplar = dict(
@@ -96,7 +96,7 @@ class AuthDeserializeTestCase(tests.TestCase):
             echo=False,
         )
 
-        self.assertEqual(utils.auth_deserialize(test_data), exemplar)
+        self.assertEqual(utils.dict_deserialize(test_data), exemplar)
 
 
 class GenerateUuidTestCase(tests.TestCase):
