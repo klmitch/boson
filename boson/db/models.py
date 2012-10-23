@@ -97,9 +97,8 @@ class Ref(BaseRef):
         :param model: The instance of the model class.
         """
 
-        base_obj = model._dbapi.lazy_xlate(model._base_obj, self.base_field,
-                                           model._hints)
-        return self.klass(model._dbapi, base_obj, model._hints)
+        return model._dbapi._lazy_get(model._base_obj, self.base_field,
+                                      model._hints, self.klass)
 
 
 class ListRef(BaseRef):
@@ -115,10 +114,8 @@ class ListRef(BaseRef):
         :param model: The instance of the model class.
         """
 
-        base_objs = model._dbapi.lazy_xlate_list(model._base_obj, self.field,
-                                                 model._hints)
-        return [self.klass(model._dbapi, base_obj, model._hints)
-                for base_obj in base_objs]
+        return model._dbapi._lazy_get_list(model._base_obj, self.field,
+                                           model._hints, self.klass)
 
 
 class BaseModelMeta(metatools.MetaClass):
@@ -234,7 +231,7 @@ class BaseModel(object):
         # call the dbapi to save it
         if name in self._fields:
             setattr(self._base_obj, name, value)
-            self._dbapi.save(self._base_obj)
+            self._dbapi._save(self._base_obj)
             self._values[name] = value
 
             # If there's a corresponding reference, invalidate the
@@ -252,7 +249,7 @@ class BaseModel(object):
             # If it's a simple reference, update it
             if isinstance(ref, Ref):
                 setattr(self._base_obj, ref.base_field, value.id)
-                self._dbapi.save(self._base_obj)
+                self._dbapi._save(self._base_obj)
                 self._values[ref.base_field] = value.id
                 self._cache[name] = value
                 return
@@ -345,7 +342,7 @@ class BaseModel(object):
             setattr(self._base_obj, key, value)
 
         # Save it...
-        self._dbapi.save(self._base_obj)
+        self._dbapi._save(self._base_obj)
 
         # Install the changes to the values and the cache
         self._values.update(values)
@@ -354,6 +351,15 @@ class BaseModel(object):
         # Handle cache invalidations
         for name in invalidate:
             self._cache.pop(name, None)
+
+    def delete(self):
+        """
+        Delete the model object from the database.  Note that this may
+        fail if other records refer to this object.
+        """
+
+        # Just call the dbapi delete method
+        self._dbapi._delete(self._base_obj)
 
 
 class Service(BaseModel):

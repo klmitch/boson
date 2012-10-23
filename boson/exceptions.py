@@ -48,3 +48,7 @@ class BosonException(Exception):
 
 class AmbiguousFieldUpdate(BosonException):
     message = _("Ambiguous update of field %(field)r")
+
+
+class Duplicate(BosonException):
+    message = _("Duplicate object for %(klass)s")

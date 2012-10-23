@@ -2,6 +2,9 @@ Remaining development tasks for this release:
 
 * Build DB API
 
+  - Still need to define session handling as well as transaction
+    handling
+
 * Build WSGI API
 
 Future work:
