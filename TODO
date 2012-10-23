@@ -1,0 +1,36 @@
+Remaining development tasks for this release:
+
+* Build DB API
+
+* Build WSGI API
+
+Future work:
+
+* Split services and usages.  One of the design goals for Boson is to
+  be able to handle quotas when multiple instances of the same service
+  exist; i.e., if we have a "Chicago" nova realm and a "London" nova
+  realm, we want to be able to enforce a maximum of 10 instances,
+  whether the user has 10 on Chicago; 10 on London; 5 on Chicago and 5
+  on London; 1 on Chicago and 9 on London; etc.  Pulling this off
+  requires that we track usage per service instance, as well as total
+  usage.
+
+  - Since this was one of the original design goals, may move this up
+    in priority for the initial release
+
+* Allow services to subscribe to reservations.  Consider the following
+  case: nova allocates various resources, obtaining a reservation from
+  Boson.  Nova then passes that reservation ID along to Quantum, which
+  allocates some other resources, adding them to that reservation.
+  The flow continues through Nova and other services, and then the
+  reservation is committed or rolled back.  In that case, Quantum may
+  benefit from knowing the ultimate disposition of the reservation; if
+  there is some way it can instruct Boson to send a POST or PUT to a
+  specific URL when a particular reservation is committed or rolled
+  back, we can accommodate that.  To do this would entail adding a
+  'subscriptions' table that would reference the reservation and
+  include the target URL and desired HTTP method and other
+  parameters.  (To keep things simple, I'm considering specifying that
+  this would simply be a POST with a JSON payload containing a simple
+  dictionary; the dictionary keys would be 'reservation' (reservation
+  UUID) and 'disposition' (either 'rollback' or 'commit').)
