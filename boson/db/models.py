@@ -97,8 +97,9 @@ class Ref(BaseRef):
         :param model: The instance of the model class.
         """
 
-        return model._dbapi._lazy_get(model._base_obj, self.base_field,
-                                      model._hints, self.klass)
+        return model._dbapi._lazy_get(model._context, model._base_obj,
+                                      self.base_field, model._hints,
+                                      self.klass)
 
 
 class ListRef(BaseRef):
@@ -114,8 +115,9 @@ class ListRef(BaseRef):
         :param model: The instance of the model class.
         """
 
-        return model._dbapi._lazy_get_list(model._base_obj, self.field,
-                                           model._hints, self.klass)
+        return model._dbapi._lazy_get_list(model._context, model._base_obj,
+                                           self.field, model._hints,
+                                           self.klass)
 
 
 class BaseModelMeta(metatools.MetaClass):
@@ -169,10 +171,12 @@ class BaseModel(object):
     _fields = set(['created_at', 'updated_at', 'id'])
     _refs = []
 
-    def __init__(self, dbapi, base_obj, hints=None):
+    def __init__(self, context, dbapi, base_obj, hints=None):
         """
         Initialize a Model object.
 
+        :param context: The current context for accessing the
+                        database.
         :param dbapi: A handle for the underlying database API.
         :param base_obj: The object returned from the underlying
                          database API.  It is assumed that all
@@ -186,6 +190,7 @@ class BaseModel(object):
                       references.
         """
 
+        self._context = context
         self._dbapi = dbapi
         self._base_obj = base_obj
         self._values = dict((fld, getattr(base_obj, fld))
@@ -231,7 +236,7 @@ class BaseModel(object):
         # call the dbapi to save it
         if name in self._fields:
             setattr(self._base_obj, name, value)
-            self._dbapi._save(self._base_obj)
+            self._dbapi._save(self._context, self._base_obj)
             self._values[name] = value
 
             # If there's a corresponding reference, invalidate the
@@ -249,7 +254,7 @@ class BaseModel(object):
             # If it's a simple reference, update it
             if isinstance(ref, Ref):
                 setattr(self._base_obj, ref.base_field, value.id)
-                self._dbapi._save(self._base_obj)
+                self._dbapi._save(self._context, self._base_obj)
                 self._values[ref.base_field] = value.id
                 self._cache[name] = value
                 return
@@ -342,7 +347,7 @@ class BaseModel(object):
             setattr(self._base_obj, key, value)
 
         # Save it...
-        self._dbapi._save(self._base_obj)
+        self._dbapi._save(self._context, self._base_obj)
 
         # Install the changes to the values and the cache
         self._values.update(values)
@@ -359,7 +364,7 @@ class BaseModel(object):
         """
 
         # Just call the dbapi delete method
-        self._dbapi._delete(self._base_obj)
+        self._dbapi._delete(self._context, self._base_obj)
 
 
 class Service(BaseModel):

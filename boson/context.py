@@ -76,7 +76,7 @@ class Context(object):
         if is_admin is None:
             is_admin = 'admin' in [r.lower() for r in self.roles]
         self.is_admin = is_admin
-        self._session = None
+        self.session = None
 
     def to_dict(self):
         """Serialize the context to a dictionary."""
@@ -99,14 +99,6 @@ class Context(object):
             new_ctx.roles.append('admin')
 
         return new_ctx
-
-    @property
-    def session(self):
-        """Obtain a database API session object."""
-
-        if self._session is None:
-            self._session = db_api.get_session()
-        return self._session
 
 
 def get_admin_context():

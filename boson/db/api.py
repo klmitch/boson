@@ -32,13 +32,44 @@ class API(object):
 
     __metaclass__ = abc.ABCMeta
 
+    def _get_session(self, context):
+        """
+        Retrieve the session.  If no session currently exists, a new
+        one will be created by calling the provided
+        ``create_session()`` method.
+
+        :param context: The current context for accessing the
+                        database.
+        """
+
+        # Allocate a session if necessary
+        if context.session is None:
+            context.session = self.create_session(context)
+
+        return context.session
+
     @abc.abstractmethod
-    def create_service(self, name, auth_fields):
+    def create_session(self, context):
+        """
+        Create a new session.  This will be stored on the user
+        context, and can be used by the database to manage a single
+        database connection.
+
+        :param context: The current context for accessing the
+                        database.
+        """
+
+        pass  # Pragma: nocover
+
+    @abc.abstractmethod
+    def create_service(self, context, name, auth_fields):
         """
         Create a new service.  Raises a Duplicate exception in the
         event that the new service is a duplicate of an existing
         service.
 
+        :param context: The current context for accessing the
+                        database.
         :param name: The canonical name of the service, i.e., 'nova',
                      'glance', etc.
         :param auth_fields: A sequence listing the names of the fields
@@ -52,10 +83,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_service(self, id=None, name=None):
+    def get_service(self, context, id=None, name=None):
         """
         Look up a specific service by name or by ID.
 
+        :param context: The current context for accessing the
+                        database.
         :param id: The ID of the service to look up.
         :param name: The name of the service to look up.
 
@@ -69,9 +102,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_services(self):
+    def get_services(self, context):
         """
         Retrieve a list of all defined services.
+
+        :param context: The current context for accessing the
+                        database.
 
         :returns: A list of instances of ``boson.db.models.Service``.
         """
@@ -79,12 +115,14 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def create_category(self, service, name, usage_fset, quota_fsets):
+    def create_category(self, context, service, name, usage_fset, quota_fsets):
         """
         Create a new category on a service.  Raises a Duplicate
         exception in the event that the new category is a duplicate of
         an existing category for the service.
 
+        :param context: The current context for accessing the
+                        database.
         :param service: The service the category is for.  Can be
                         either a ``Service`` object or a UUID of an
                         existing service.
@@ -115,10 +153,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_category(self, id=None, service=None, name=None):
+    def get_category(self, context, id=None, service=None, name=None):
         """
         Look up a specific category by id or by service and name.
 
+        :param context: The current context for accessing the
+                        database.
         :param id: The ID of the category to look up.
         :param service: The ``Service`` or service ID of the service
                         to look up the category in.
@@ -135,10 +175,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_categories(self, service):
+    def get_categories(self, context, service):
         """
         Retrieve a list of all defined categories for a given service.
 
+        :param context: The current context for accessing the
+                        database.
         :param service: The ``Service`` or service ID of the service
                         to retrieve the categories for.
 
@@ -148,13 +190,15 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def create_resource(self, service, category, name, parameters,
+    def create_resource(self, context, service, category, name, parameters,
                         absolute=False):
         """
         Create a new resource on a service.  Raises a Duplicate
         exception in the event that the new resource is a duplicate of
         an existing resource for the service.
 
+        :param context: The current context for accessing the
+                        database.
         :param service: The service the resource is for.  Can be
                         either a ``Service`` object or a UUID of an
                         existing service.
@@ -187,10 +231,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_resource(self, id=None, service=None, name=None):
+    def get_resource(self, context, id=None, service=None, name=None):
         """
         Look up a specific resource by id or by service and name.
 
+        :param context: The current context for accessing the
+                        database.
         :param id: The ID of the resource to look up.
         :param service: The ``Service`` or service ID of the service
                         to look up the resource in.
@@ -207,10 +253,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_resources(self, service):
+    def get_resources(self, context, service):
         """
         Retrieve a list of all defined resources for a given service.
 
+        :param context: The current context for accessing the
+                        database.
         :param service: The ``Service`` or service ID of the service
                         to retrieve the resources for.
 
@@ -220,13 +268,15 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def create_usage(self, resource, param_data, auth_data, used=0,
+    def create_usage(self, context, resource, param_data, auth_data, used=0,
                      reserved=0, until_refresh=0, refresh_id=None):
         """
         Create a new usage for a given resource and user.  Raises a
         Duplicate exception in the event that the new usage is a
         duplicate of an existing usage.
 
+        :param context: The current context for accessing the
+                        database.
         :param resource: The resource the usage is for.  Can be either
                          a ``Resource`` object or a UUID of an
                          existing resource.
@@ -264,12 +314,14 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_usage(self, id=None, resource=None, param_data=None,
+    def get_usage(self, context, id=None, resource=None, param_data=None,
                   auth_data=None):
         """
         Look up a specific usage by id or by resource, parameter data,
         and authentication and authorization data.
 
+        :param context: The current context for accessing the
+                        database.
         :param id: The ID of the usage to look up.
         :param resource: The ``Resource`` or resource ID of the
                          resource to look up the usage for.
@@ -289,10 +341,13 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_usages(self, resource=None, param_data=None, auth_data=None):
+    def get_usages(self, context, resource=None, param_data=None,
+                   auth_data=None):
         """
         Retrieve a list of all defined usages.
 
+        :param context: The current context for accessing the
+                        database.
         :param resource: A ``Service`` or service ID to filter the
                          list of returned usages.
         :param param_data: Resource parameter data (a dictionary) to
@@ -309,12 +364,14 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def create_quota(self, resource, auth_data, limit=None):
+    def create_quota(self, context, resource, auth_data, limit=None):
         """
         Create a new quota for a given resource and user.  Raises a
         Duplicate exception in the event that the new usage is a
         duplicate of an existing quota.
 
+        :param context: The current context for accessing the
+                        database.
         :param resource: The resource the quota is for.  Can be either
                          a ``Resource`` object or a UUID of an
                          existing resource.
@@ -331,11 +388,13 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_quota(self, id=None, resource=None, auth_data=None):
+    def get_quota(self, context, id=None, resource=None, auth_data=None):
         """
         Look up a specific quota by id or by resource and
         authentication and authorization data.
 
+        :param context: The current context for accessing the
+                        database.
         :param id: The ID of the quota to look up.
         :param resource: The ``Resource`` or resource ID of the
                          resource to look up the quota for.
@@ -353,10 +412,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_quotas(self, resource=None, auth_data=None):
+    def get_quotas(self, context, resource=None, auth_data=None):
         """
         Retrieve a list of all defined quotas.
 
+        :param context: The current context for accessing the
+                        database.
         :param resource: A ``Service`` or service ID to filter the
                          list of returned quotas.
         :param auth_data: Authentication and authorization data (a
@@ -369,10 +430,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def create_reservation(self, expire):
+    def create_reservation(self, context, expire):
         """
         Create a new reservation.
 
+        :param context: The current context for accessing the
+                        database.
         :param expire: A date and time at which the reservation will
                        expire.
 
@@ -382,10 +445,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def reserve(self, reservation, resource, usage, delta):
+    def reserve(self, context, reservation, resource, usage, delta):
         """
         Reserve a particular amount of a specific resource.
 
+        :param context: The current context for accessing the
+                        database.
         :param reservation: The reservation the item is reserved in.
                             Can be either a ``Reservation`` object or
                             a UUID of an existing reservation.
@@ -404,10 +469,12 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_reservation(self, id):
+    def get_reservation(self, context, id):
         """
         Look up a specific reservation by id.
 
+        :param context: The current context for accessing the
+                        database.
         :param id: The ID of the reservation to look up.
 
         Note: if no matching reservation can be found, a KeyError will
@@ -419,20 +486,25 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def expire_reservations(self):
+    def expire_reservations(self, context):
         """
         Rolls back all expired reservations.
+
+        :param context: The current context for accessing the
+                        database.
         """
 
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def _lazy_get(self, base_obj, field, hints, klass):
+    def _lazy_get(self, context, base_obj, field, hints, klass):
         """
         Called to obtain the given field from the base database
         object.  Used to resolve cross-references to other database
         objects.
 
+        :param context: The current context for accessing the
+                        database.
         :param base_obj: The underlying database object to retrieve
                          the field from.
         :param field: The name of the field to retrieve.
@@ -449,12 +521,14 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def _lazy_get_list(self, base_obj, field, hints, klass):
+    def _lazy_get_list(self, context, base_obj, field, hints, klass):
         """
         Called to obtain the given field from the base database
         object.  Used to resolve cross-references to lists of other
         database objects.
 
+        :param context: The current context for accessing the
+                        database.
         :param base_obj: The underlying database object to retrieve
                          the field from.
         :param field: The name of the field to retrieve.
@@ -471,11 +545,13 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def _save(self, base_obj):
+    def _save(self, context, base_obj):
         """
         Called to update the underlying database with the changes made
         to a base database object.
 
+        :param context: The current context for accessing the
+                        database.
         :param base_obj: The underlying database object to save to the
                          database.
         """
@@ -483,11 +559,13 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def _delete(self, base_obj):
+    def _delete(self, context, base_obj):
         """
         Called to delete the underlying base database object from the
         database.
 
+        :param context: The current context for accessing the
+                        database.
         :param base_obj: The underlying database object to delete from
                          the database.
         """

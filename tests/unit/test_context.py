@@ -42,7 +42,7 @@ class ContextTestCase(tests.TestCase):
         self.assertEqual(ctx.roles, ['one', 'two'])
         self.assertEqual(ctx.request_id, 'request_id')
         self.assertEqual(ctx.is_admin, True)
-        self.assertEqual(ctx._session, None)
+        self.assertEqual(ctx.session, None)
 
     @mock.patch.object(context, 'generate_request_id',
                        return_value='request_id')
@@ -54,7 +54,7 @@ class ContextTestCase(tests.TestCase):
         self.assertEqual(ctx.roles, [])
         self.assertEqual(ctx.request_id, 'request_id')
         self.assertEqual(ctx.is_admin, False)
-        self.assertEqual(ctx._session, None)
+        self.assertEqual(ctx.session, None)
 
     def test_init_admin(self):
         ctx = context.Context('user', 'tenant', roles=['one', 'aDmIn', 'two'],
@@ -65,7 +65,7 @@ class ContextTestCase(tests.TestCase):
         self.assertEqual(ctx.roles, ['one', 'aDmIn', 'two'])
         self.assertEqual(ctx.request_id, 'request_id')
         self.assertEqual(ctx.is_admin, True)
-        self.assertEqual(ctx._session, None)
+        self.assertEqual(ctx.session, None)
 
     @mock.patch.object(context.Context, '__init__', return_value=None)
     def test_from_dict(self, mock_init):
@@ -94,7 +94,7 @@ class ContextTestCase(tests.TestCase):
     def test_elevated_nonadmin(self):
         ctx = context.Context('user', 'tenant', roles=['one', 'two'],
                               request_id='request_id', is_admin=False)
-        ctx._session = mock.Mock()
+        ctx.session = mock.Mock()
 
         elev_ctx = ctx.elevated()
 
@@ -104,12 +104,12 @@ class ContextTestCase(tests.TestCase):
         self.assertEqual(elev_ctx.roles, ['one', 'two', 'admin'])
         self.assertEqual(elev_ctx.request_id, 'request_id')
         self.assertEqual(elev_ctx.is_admin, True)
-        self.assertEqual(id(elev_ctx._session), id(ctx._session))
+        self.assertEqual(id(elev_ctx.session), id(ctx.session))
 
     def test_elevated_admin(self):
         ctx = context.Context('user', 'tenant', roles=['one', 'aDmIn', 'two'],
                               request_id='request_id', is_admin=True)
-        ctx._session = 'session'
+        ctx.session = 'session'
 
         elev_ctx = ctx.elevated()
 
@@ -119,24 +119,7 @@ class ContextTestCase(tests.TestCase):
         self.assertEqual(elev_ctx.roles, ['one', 'aDmIn', 'two'])
         self.assertEqual(elev_ctx.request_id, 'request_id')
         self.assertEqual(elev_ctx.is_admin, True)
-        self.assertEqual(id(elev_ctx._session), id(ctx._session))
-
-    @mock.patch('boson.db.api.get_session', return_value='new session')
-    def test_session_existing(self, mock_get_session):
-        ctx = context.Context('user', 'tenant')
-        ctx._session = 'old session'
-
-        self.assertEqual(ctx.session, 'old session')
-        self.assertEqual(ctx._session, 'old session')
-        self.assertFalse(mock_get_session.called)
-
-    @mock.patch('boson.db.api.get_session', return_value='new session')
-    def test_session_create(self, mock_get_session):
-        ctx = context.Context('user', 'tenant')
-
-        self.assertEqual(ctx.session, 'new session')
-        self.assertEqual(ctx._session, 'new session')
-        mock_get_session.assert_called_once_with()
+        self.assertEqual(id(elev_ctx.session), id(ctx.session))
 
 
 class GetAdminContextTestCase(tests.TestCase):
