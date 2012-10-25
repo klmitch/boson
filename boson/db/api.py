@@ -24,6 +24,97 @@ def get_session():
     pass
 
 
+class APITransaction(object):
+    """
+    A context manager for managing transactions.  Implements the
+    context manager interface, allowing use with the Python ``with``
+    statement.  Use ``boson.db.api.API.transaction()`` to allocate
+    one.
+    """
+
+    def __init__(self, dbapi, context, commit=True, rollback=True):
+        """
+        Initialize the ``APITransaction``.
+
+        :param dbapi: The database API object.
+        :param context: The current context for accessing the
+                        database.
+        :param commit: If ``True`` (the default), the transaction will
+                       be automatically committed on successful
+                       completion of the ``with`` block.
+        :param rollback: If ``True`` (the default), the transaction
+                         will be automatically rolled back on
+                         unsuccessful completion of the ``with``
+                         block.
+        """
+
+        self.dbapi = dbapi
+        self.context = context
+        self._commit = commit
+        self._rollback = rollback
+        self._closed = False
+
+    def __enter__(self):
+        """
+        Begin the transaction.  Returns the ``APITransaction`` object
+        for assignment to the ``with`` block variable, if desired.
+        """
+
+        if self._closed:
+            raise ValueError("transaction has already been closed")
+
+        self.dbapi.begin(self.context)
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_trace):
+        """
+        End the transaction.  If an exception was raised, and
+        ``rollback=True`` was passed to the constructor, the
+        transaction will be rolled back.  If no exception was raised,
+        and ``commit=True``, the transaction will be committed.
+        Returns ``False``, as no exceptions are "handled" by this
+        method.
+        """
+
+        if exc_type is not None:
+            if self._rollback:
+                self.rollback()
+        else:
+            if self._commit:
+                self.commit()
+
+        return False
+
+    def commit(self):
+        """
+        Commit the transaction.
+        """
+
+        # If the transaction has already been closed, don't do
+        # anything more
+        if self._closed:
+            return
+
+        self.dbapi.commit(self.context)
+
+        self._closed = True
+
+    def rollback(self):
+        """
+        Roll back the transaction.
+        """
+
+        # If the transaction has already been closed, don't do
+        # anything more
+        if self._closed:
+            return
+
+        self.dbapi.rollback(self.context)
+
+        self._closed = True
+
+
 class API(object):
     """
     Base class for database API implementations.  All database API
@@ -48,12 +139,63 @@ class API(object):
 
         return context.session
 
+    def transaction(self, context, commit=True, rollback=True):
+        """
+        Retrieve an ``APITransaction`` context manager, suitable for
+        use with the Python ``with`` statement.
+
+        :param context: The current context for accessing the
+                        database.
+        :param commit: If ``True`` (the default), the transaction will
+                       be automatically committed on successful
+                       completion of the ``with`` block.
+        :param rollback: If ``True`` (the default), the transaction
+                         will be automatically rolled back on
+                         unsuccessful completion of the ``with``
+                         block.
+        """
+
+        return APITransaction(self, context, commit=commit, rollback=rollback)
+
     @abc.abstractmethod
     def create_session(self, context):
         """
         Create a new session.  This will be stored on the user
         context, and can be used by the database to manage a single
         database connection.
+
+        :param context: The current context for accessing the
+                        database.
+        """
+
+        pass  # Pragma: nocover
+
+    @abc.abstractmethod
+    def begin(self, context):
+        """
+        Begin a transaction.
+
+        :param context: The current context for accessing the
+                        database.
+        """
+
+        pass  # Pragma: nocover
+
+    @abc.abstractmethod
+    def commit(self, context):
+        """
+        End a transaction, committing the changes to the database.
+
+        :param context: The current context for accessing the
+                        database.
+        """
+
+        pass  # Pragma: nocover
+
+    @abc.abstractmethod
+    def rollback(self, context):
+        """
+        End a transaction, rolling back the changes to the database.
 
         :param context: The current context for accessing the
                         database.
