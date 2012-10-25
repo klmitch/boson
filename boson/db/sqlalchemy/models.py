@@ -87,7 +87,6 @@ class PickledString(TypeDecorator):
 class ModelBase(object):
     """Base class for model classes."""
 
-    __table_args__ = {'mysql_engine': 'InnoDB'}
     __table_initialized__ = False
     created_at = Column(DateTime, default=timeutils.utcnow)
     updated_at = Column(DateTime, onupdate=timeutils.utcnow)
