@@ -98,7 +98,7 @@ class Service(BASE, ModelBase):
 
     __tablename__ = 'services'
 
-    name = Column(String(64))
+    name = Column(String(64), nullable=False)
     auth_fields = Column(PickledString)
 
 
@@ -109,7 +109,7 @@ class Category(BASE, ModelBase):
 
     service_id = Column(String(36), ForeignKey('services.id'),
                         nullable=False)
-    name = Column(String(64))
+    name = Column(String(64), nullable=False)
     usage_fset = Column(PickledString)
     quota_fsets = Column(PickledString)
 
@@ -125,9 +125,9 @@ class Resource(BASE, ModelBase):
                         nullable=False)
     category_id = Column(String(36), ForeignKey('categories.id'),
                          nullable=False)
-    name = Column(String(64))
+    name = Column(String(64), nullable=False)
     parameters = Column(PickledString)
-    absolute = Column(Boolean)
+    absolute = Column(Boolean, nullable=False)
 
     service = relationship(Service, backref=backref('resources'))
     category = relationship(Category, backref=backref('resources'))
@@ -142,8 +142,8 @@ class Usage(BASE, ModelBase):
                          nullable=False)
     parameter_data = Column(DictSerialized)
     auth_data = Column(DictSerialized)
-    used = Column(BigInteger)
-    reserved = Column(BigInteger)
+    used = Column(BigInteger, nullable=False)
+    reserved = Column(BigInteger, nullable=False)
     until_refresh = Column(Integer)
     refresh_id = Column(String(36))
 
@@ -182,7 +182,7 @@ class ReservedItem(BASE, ModelBase):
                          nullable=False)
     usage_id = Column(String(36), ForeignKey('usages.id'),
                       nullable=False)
-    delta = Column(BigInteger)
+    delta = Column(BigInteger, nullable=False)
 
     reservation = relationship(Reservation, backref=backref('reserved_items'))
     resource = relationship(Resource, backref=backref('reserved_items'))
