@@ -18,12 +18,6 @@
 import abc
 
 
-def get_session():
-    """Temporary placeholder: get a session for the underlying database."""
-
-    pass
-
-
 class APITransaction(object):
     """
     A context manager for managing transactions.  Implements the
