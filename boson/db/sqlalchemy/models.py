@@ -17,20 +17,19 @@
 
 import cPickle
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime
-from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.exc.declarative import declarative_base
-from sqlalchemy.orm import backref, relationship
-from sqlalchemy.types import TypeDecorator
+import sqlalchemy as sa
+from sqlalchemy.exc import declarative as sa_dec
+from sqlalchemy import orm
+from sqlalchemy import types as sa_types
 
 from boson.openstack.common import timeutils
 from boson import utils
 
 
-BASE = declarative_base()
+BASE = sa_dec.declarative_base()
 
 
-class DictSerialized(TypeDecorator):
+class DictSerialized(sa_types.TypeDecorator):
     """
     Special SQLAlchemy type to support serializing dictionaries into
     and out of the special serialization format implemented by
@@ -39,7 +38,7 @@ class DictSerialized(TypeDecorator):
     possible to search for table rows matching a desired dictionary.
     """
 
-    impl = Text
+    impl = sa.Text
 
     def process_bind_param(self, value, dialect):
         """Marshal the value into its serialized format."""
@@ -58,14 +57,14 @@ class DictSerialized(TypeDecorator):
         return value
 
 
-class PickledString(TypeDecorator):
+class PickledString(sa_types.TypeDecorator):
     """
     Special SQLAlchemy type to support serializing Python objects into
     and out of the database, using the cPickle module.  This enables
     field sets to be stored in the database as sets, etc.
     """
 
-    impl = Text
+    impl = sa.Text
 
     def process_bind_param(self, value, dialect):
         """Marshal the value into its serialized format."""
@@ -88,9 +87,10 @@ class ModelBase(object):
     """Base class for model classes."""
 
     __table_initialized__ = False
-    created_at = Column(DateTime, default=timeutils.utcnow)
-    updated_at = Column(DateTime, onupdate=timeutils.utcnow)
-    id = Column(String(36), primary_key=True, default=utils.generate_uuid)
+    created_at = sa.Column(sa.DateTime, default=timeutils.utcnow)
+    updated_at = sa.Column(sa.DateTime, onupdate=timeutils.utcnow)
+    id = sa.Column(sa.String(36), primary_key=True,
+                   default=utils.generate_uuid)
 
 
 class Service(BASE, ModelBase):
@@ -98,8 +98,8 @@ class Service(BASE, ModelBase):
 
     __tablename__ = 'services'
 
-    name = Column(String(64), nullable=False)
-    auth_fields = Column(PickledString)
+    name = sa.Column(sa.String(64), nullable=False)
+    auth_fields = sa.Column(PickledString)
 
 
 class Category(BASE, ModelBase):
@@ -107,13 +107,13 @@ class Category(BASE, ModelBase):
 
     __tablename__ = 'categories'
 
-    service_id = Column(String(36), ForeignKey('services.id'),
-                        nullable=False)
-    name = Column(String(64), nullable=False)
-    usage_fset = Column(PickledString)
-    quota_fsets = Column(PickledString)
+    service_id = sa.Column(sa.String(36), sa.ForeignKey('services.id'),
+                           nullable=False)
+    name = sa.Column(sa.String(64), nullable=False)
+    usage_fset = sa.Column(PickledString)
+    quota_fsets = sa.Column(PickledString)
 
-    service = relationship(Service, backref=backref('categories'))
+    service = orm.relationship(Service, backref=orm.backref('categories'))
 
 
 class Resource(BASE, ModelBase):
@@ -121,16 +121,16 @@ class Resource(BASE, ModelBase):
 
     __tablename__ = 'resources'
 
-    service_id = Column(String(36), ForeignKey('services.id'),
-                        nullable=False)
-    category_id = Column(String(36), ForeignKey('categories.id'),
-                         nullable=False)
-    name = Column(String(64), nullable=False)
-    parameters = Column(PickledString)
-    absolute = Column(Boolean, nullable=False)
+    service_id = sa.Column(sa.String(36), sa.ForeignKey('services.id'),
+                           nullable=False)
+    category_id = sa.Column(sa.String(36), sa.ForeignKey('categories.id'),
+                            nullable=False)
+    name = sa.Column(sa.String(64), nullable=False)
+    parameters = sa.Column(PickledString)
+    absolute = sa.Column(sa.Boolean, nullable=False)
 
-    service = relationship(Service, backref=backref('resources'))
-    category = relationship(Category, backref=backref('resources'))
+    service = orm.relationship(Service, backref=orm.backref('resources'))
+    category = orm.relationship(Category, backref=orm.backref('resources'))
 
 
 class Usage(BASE, ModelBase):
@@ -138,16 +138,16 @@ class Usage(BASE, ModelBase):
 
     __tablename__ = 'usages'
 
-    resource_id = Column(String(36), ForeignKey('resources.id'),
+    resource_id = sa.Column(sa.String(36), sa.ForeignKey('resources.id'),
                          nullable=False)
-    parameter_data = Column(DictSerialized)
-    auth_data = Column(DictSerialized)
-    used = Column(BigInteger, nullable=False)
-    reserved = Column(BigInteger, nullable=False)
-    until_refresh = Column(Integer)
-    refresh_id = Column(String(36))
+    parameter_data = sa.Column(DictSerialized)
+    auth_data = sa.Column(DictSerialized)
+    used = sa.Column(sa.BigInteger, nullable=False)
+    reserved = sa.Column(sa.BigInteger, nullable=False)
+    until_refresh = sa.Column(sa.Integer)
+    refresh_id = sa.Column(sa.String(36))
 
-    resource = relationship(Resource, backref=backref('usages'))
+    resource = orm.relationship(Resource, backref=orm.backref('usages'))
 
 
 class Quota(BASE, ModelBase):
@@ -155,12 +155,12 @@ class Quota(BASE, ModelBase):
 
     __tablename__ = 'quotas'
 
-    resource_id = Column(String(36), ForeignKey('resources.id'),
-                         nullable=False)
-    auth_data = Column(DictSerialized)
-    limit = Column(BigInteger)
+    resource_id = sa.Column(sa.String(36), sa.ForeignKey('resources.id'),
+                            nullable=False)
+    auth_data = sa.Column(DictSerialized)
+    limit = sa.Column(sa.BigInteger)
 
-    resource = relationship(Resource, backref=backref('quotas'))
+    resource = orm.relationship(Resource, backref=orm.backref('quotas'))
 
 
 class Reservation(BASE, ModelBase):
@@ -168,7 +168,7 @@ class Reservation(BASE, ModelBase):
 
     __tablename__ = 'reservations'
 
-    expire = Column(DateTime, nullable=False)
+    expire = sa.Column(sa.DateTime, nullable=False)
 
 
 class ReservedItem(BASE, ModelBase):
@@ -176,14 +176,16 @@ class ReservedItem(BASE, ModelBase):
 
     __tablename__ = 'reserved_items'
 
-    reservation_id = Column(String(36), ForeignKey('reservations.id'),
+    reservation_id = sa.Column(sa.String(36), sa.ForeignKey('reservations.id'),
+                               nullable=False)
+    resource_id = sa.Column(sa.String(36), sa.ForeignKey('resources.id'),
                             nullable=False)
-    resource_id = Column(String(36), ForeignKey('resources.id'),
+    usage_id = sa.Column(sa.String(36), sa.ForeignKey('usages.id'),
                          nullable=False)
-    usage_id = Column(String(36), ForeignKey('usages.id'),
-                      nullable=False)
-    delta = Column(BigInteger, nullable=False)
+    delta = sa.Column(sa.BigInteger, nullable=False)
 
-    reservation = relationship(Reservation, backref=backref('reserved_items'))
-    resource = relationship(Resource, backref=backref('reserved_items'))
-    usage = relationship(Usage, backref=backref('reserved_items'))
+    reservation = orm.relationship(Reservation,
+                                   backref=orm.backref('reserved_items'))
+    resource = orm.relationship(Resource,
+                                backref=orm.backref('reserved_items'))
+    usage = orm.relationship(Usage, backref=orm.backref('reserved_items'))
