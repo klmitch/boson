@@ -17,6 +17,12 @@
 
 import abc
 
+from boson.openstack.common.gettextutils import _
+from boson.openstack.common import log as logging
+
+
+LOG = logging.getLogger(__name__)
+
 
 class APITransaction(object):
     """
@@ -151,6 +157,69 @@ class API(object):
 
         return APITransaction(self, context, commit=commit, rollback=rollback)
 
+    def hints_parser(self, model, hints):
+        """
+        Utility method to parse hints fields.
+
+        :param model: The starting model, from ``db.models``.
+        :param hints: A list of hints indicating which attributes of
+                      the model will be required by the calling code.
+                      Only those attributes which reference other
+                      fields need be listed, although it is not an
+                      error to list other fields.  It is also
+                      permissible to indicate deeper levels of access
+                      by separating attributes with periods.  (In the
+                      case of reference fields which are represented
+                      as lists, there is no need to use square
+                      brackets.)
+        """
+
+        # Were any hints even given?
+        if not hints:
+            return {}
+
+        # The fields dictionary maps the direct fields and the
+        # corresponding models; the subhints dictionary will be used
+        # to recurse later on
+        fields = {}
+        subhints = {}
+
+        for hint in hints:
+            field, _sep, subfield = hint.partition('.')
+
+            # Look up the field in the model
+            if field not in model._refs:
+                model_name = model.__name__
+                if field not in model._fields:
+                    LOG.warning(_("Hint for undefined field %(field)r "
+                                  "of model %(model_name)s") % locals())
+                else:
+                    LOG.notice(_("Unnecessary hint %(field)r "
+                                 "for model %(model_name)s") % locals())
+                continue
+
+            # Have we handled this field before?
+            if field not in fields:
+                # Get the model it refers to
+                ref_model = model._refs[field].klass
+
+                # Save that to fields...
+                fields[field] = ref_model
+
+            # Also save the subhints
+            if subfield:
+                subhints.setdefault(field, set())
+                subhints[field].add(subfield)
+
+        # Now we can build and return the result dictionary tree
+        results = {}
+        for field, sub_model in fields.items():
+            sub_results = self.hint_parser(sub_model, subhints.get(field))
+
+            results[field] = (sub_model, sub_results)
+
+        return results
+
     @abc.abstractmethod
     def create_session(self, context):
         """
@@ -219,7 +288,7 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_service(self, context, id=None, name=None):
+    def get_service(self, context, id=None, name=None, hints=None):
         """
         Look up a specific service by name or by ID.
 
@@ -227,6 +296,16 @@ class API(object):
                         database.
         :param id: The ID of the service to look up.
         :param name: The name of the service to look up.
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         Note: exactly one of ``id`` and ``name`` must be provided; if
         neither or both are provided, a TypeError will be raised.  If
@@ -238,12 +317,22 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_services(self, context):
+    def get_services(self, context, hints=None):
         """
         Retrieve a list of all defined services.
 
         :param context: The current context for accessing the
                         database.
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         :returns: A list of instances of ``boson.db.models.Service``.
         """
@@ -289,7 +378,8 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_category(self, context, id=None, service=None, name=None):
+    def get_category(self, context, id=None, service=None, name=None,
+                     hints=None):
         """
         Look up a specific category by id or by service and name.
 
@@ -299,6 +389,16 @@ class API(object):
         :param service: The ``Service`` or service ID of the service
                         to look up the category in.
         :param name: The name of the category to look up.
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         Note: either provide ``id`` or provide both ``service`` and
         ``name``.  If an invalid combination of arguments is provided,
@@ -311,7 +411,7 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_categories(self, context, service):
+    def get_categories(self, context, service, hints=None):
         """
         Retrieve a list of all defined categories for a given service.
 
@@ -319,6 +419,16 @@ class API(object):
                         database.
         :param service: The ``Service`` or service ID of the service
                         to retrieve the categories for.
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         :returns: A list of instances of ``boson.db.models.Category``.
         """
@@ -367,7 +477,8 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_resource(self, context, id=None, service=None, name=None):
+    def get_resource(self, context, id=None, service=None, name=None,
+                     hints=None):
         """
         Look up a specific resource by id or by service and name.
 
@@ -377,6 +488,16 @@ class API(object):
         :param service: The ``Service`` or service ID of the service
                         to look up the resource in.
         :param name: The name of the resource to look up.
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         Note: either provide ``id`` or provide both ``service`` and
         ``name``.  If an invalid combination of arguments is provided,
@@ -389,7 +510,7 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_resources(self, context, service):
+    def get_resources(self, context, service, hints=None):
         """
         Retrieve a list of all defined resources for a given service.
 
@@ -397,6 +518,16 @@ class API(object):
                         database.
         :param service: The ``Service`` or service ID of the service
                         to retrieve the resources for.
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         :returns: A list of instances of ``boson.db.models.Resource``.
         """
@@ -451,7 +582,7 @@ class API(object):
 
     @abc.abstractmethod
     def get_usage(self, context, id=None, resource=None, param_data=None,
-                  auth_data=None):
+                  auth_data=None, hints=None):
         """
         Look up a specific usage by id or by resource, parameter data,
         and authentication and authorization data.
@@ -464,6 +595,16 @@ class API(object):
         :param param_data: Resource parameter data (a dictionary).
         :param auth_data: Authentication and authorization data (a
                           dictionary).
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         Note: either provide ``id`` or provide all three of
         ``resource``, ``param_data``, and ``auth_data``.  If an
@@ -478,7 +619,7 @@ class API(object):
 
     @abc.abstractmethod
     def get_usages(self, context, resource=None, param_data=None,
-                   auth_data=None):
+                   auth_data=None, hints=None):
         """
         Retrieve a list of all defined usages.
 
@@ -493,6 +634,16 @@ class API(object):
         :param auth_data: Authentication and authorization data (a
                           dictionary) to filter the list of returned
                           usages.
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         :returns: A list of instances of ``boson.db.models.Usage``.
         """
@@ -524,7 +675,8 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_quota(self, context, id=None, resource=None, auth_data=None):
+    def get_quota(self, context, id=None, resource=None, auth_data=None,
+                  hints=None):
         """
         Look up a specific quota by id or by resource and
         authentication and authorization data.
@@ -536,6 +688,16 @@ class API(object):
                          resource to look up the quota for.
         :param auth_data: Authentication and authorization data (a
                           dictionary).
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         Note: either provide ``id`` or both ``resource`` and
         ``auth_data``.  If an invalid combination of arguments is
@@ -548,7 +710,7 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_quotas(self, context, resource=None, auth_data=None):
+    def get_quotas(self, context, resource=None, auth_data=None, hints=None):
         """
         Retrieve a list of all defined quotas.
 
@@ -559,6 +721,16 @@ class API(object):
         :param auth_data: Authentication and authorization data (a
                           dictionary) to filter the list of returned
                           quotas.
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         :returns: A list of instances of ``boson.db.models.Quota``.
         """
@@ -605,13 +777,23 @@ class API(object):
         pass  # Pragma: nocover
 
     @abc.abstractmethod
-    def get_reservation(self, context, id):
+    def get_reservation(self, context, id, hints=None):
         """
         Look up a specific reservation by id.
 
         :param context: The current context for accessing the
                         database.
         :param id: The ID of the reservation to look up.
+        :param hints: An optional list of hints indicating which
+                      attributes of the model will be required by the
+                      calling code.  Only those attributes which
+                      reference other fields need be listed, although
+                      it is not an error to list other fields.  It is
+                      also permissible to indicate deeper levels of
+                      access by separating attributes with periods.
+                      (In the case of reference fields which are
+                      represented as lists, there is no need to use
+                      square brackets.)
 
         Note: if no matching reservation can be found, a KeyError will
         be raised.
